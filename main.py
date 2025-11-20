@@ -1,51 +1,52 @@
-# hora local tomando la ubicacion
-from fastapi import FastAPI
-from datetime import datetime
-from zoneinfo import ZoneInfo
-from models import Cliente, CrearCliente
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from models import Producto
 
-ahora = datetime.now()
-hora_actual = ahora.time()
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-country_timezones ={
-"CO":"America/Bogota",
-"MX":"America/Mexico_City",
-"PE":"America/Lima",
-"AR":"America/Argentina/Buenos_Aires",
-"CL":"America/Santiago",
-"EC":"America/Guayaquil",
-"VE":"America/Caracas"
-}
+inventario = {}
+contador_id = 1
 
-@app.get("/")
-async def root():
-    return {"message": "Hello, World!"}
 
-@app.get("/time/{iso_code}")
-async def time(iso_code: str):
-    iso = iso_code.upper()
-    timezone_str = country_timezones.get(iso)
-    tz = ZoneInfo(timezone_str)
-    return {"time": datetime.now(tz)}
+@app.post("/productos")
+def crear_producto(producto: Producto):
+    global contador_id
+    inventario[contador_id] = producto
+    contador_id += 1
+    return {"mensaje": "Producto creado", "id": contador_id - 1}
 
-db_clientes: list[Cliente] = []
 
-@app.post("/clientes/", response_model=CrearCliente)
-async def crear_cliente(cliente_info: Cliente):
-    cliente = Cliente.model_validate(cliente_info.model_dump())
-    db_clientes.append(cliente)
-    return cliente
+@app.get("/productos")
+def listar_productos():
+    return inventario
 
-@app.get("/clientes/", response_model=list[Cliente])
-async def listar_clientes():
-    return db_clientes
+
+@app.get("/productos/{id}")
+def obtener_producto(id: int):
+    if id not in inventario:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    return inventario[id]
+
+
+@app.put("/productos/{id}")
+def actualizar_producto(id: int, producto: Producto):
+    if id not in inventario:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    inventario[id] = producto
+    return {"mensaje": "Producto actualizado"}
+
+
+@app.delete("/productos/{id}")
+def eliminar_producto(id: int):
+    if id not in inventario:
+        raise HTTPException(status_code=404, detail="Producto no encontrado")
+    del inventario[id]
+    return {"mensaje": "Producto eliminado"}

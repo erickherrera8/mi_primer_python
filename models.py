@@ -1,10 +1,7 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, Field
 
-class Cliente(BaseModel):
-    nombre: str
-    cedula: str
-    email: EmailStr
-    direcion: str | None = "Ibarra"
-
-class CrearCliente(Cliente):
-    pass
+class Producto(BaseModel):
+    nombre: str = Field(..., min_length=2)
+    categoria: str = Field(..., min_length=2)
+    precio: float = Field(..., gt=0)
+    cantidad: int = Field(..., ge=0)
